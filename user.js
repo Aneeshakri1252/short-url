@@ -1,9 +1,33 @@
-const express = require("express");
-const { handleUserSignup, handleUserLogin } = require("../controllers/user");
+const { v4: uuidv4 } = require("uuid");
+const User = require("../models/user");
+const { setUser } = require("../service/auth");
 
-const router = express.Router();
+async function handleUserSignup(req, res) {
+  const { name, email, password } = req.body;
+  await User.create({
+    name,
+    email,
+    password,
+  });
+  return res.redirect("/");
+}
 
-router.post("/", handleUserSignup);
-router.post("/login", handleUserLogin);
+async function handleUserLogin(req, res) {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email, password });
 
-module.exports = router;
+  if (!user)
+    return res.render("login", {
+      error: "Invalid Username or Password",
+    });
+
+  const sessionId = uuidv4();
+  setUser(sessionId, user);
+  res.cookie("uid", sessionId);
+  return res.redirect("/");
+}
+
+module.exports = {
+  handleUserSignup,
+  handleUserLogin,
+};
